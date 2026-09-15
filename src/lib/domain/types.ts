@@ -45,10 +45,56 @@ export type LogKind = "cmd" | "ack" | "event" | "error";
 
 export type LogLine = { id: number; robotId: string; time: string; kind: LogKind; text: string };
 
+/** One version of a skill: taught by hand or trained from the shared dataset (docs: versions.md). */
+export type SkillVersion = {
+  version: number;
+  source: "taught" | "trained";
+  time: string;
+  teacher?: string;
+  /** Held-out success rate for trained versions, 0 to 1. */
+  successRate?: number;
+  previousRate?: number;
+  learnedBy: string[];
+};
+
+export type SkillState = {
+  id: string;
+  name: string;
+  needs: CapabilityId[];
+  version: number;
+  teacher: string;
+  versions: SkillVersion[];
+  /** Robot ID to the version it runs. Robots missing a capability are absent. */
+  learned: Record<string, number>;
+};
+
+export type SessionPhase = "collecting" | "training" | "evaluating" | "published";
+
+export type TrainingSession = {
+  id: string;
+  skillId: string;
+  phase: SessionPhase;
+  paused: boolean;
+  startedAt: string;
+  baseVersion: number;
+  /** Episodes to collect before training. */
+  target: number;
+  /** Per participating robot: one entry per episode, true when it succeeded. */
+  episodes: Record<string, boolean[]>;
+  /** 0 to 1 through the training and evaluating phases. */
+  progress: number;
+  result: { rate: number; previous: number } | null;
+  publishedVersion: number | null;
+  log: { id: number; text: string }[];
+};
+
 export type FleetSnapshot = {
   robots: Robot[];
   /** Per-robot history, oldest first. */
   logs: Record<string, LogLine[]>;
+  skills: SkillState[];
+  /** Newest first. */
+  sessions: TrainingSession[];
 };
 
 export type FleetFilter = "all" | "online" | "offline";

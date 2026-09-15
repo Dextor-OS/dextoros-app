@@ -81,7 +81,7 @@ Each phase ends with `npm run lint` and `npx tsc --noEmit` clean and the app run
 2. Pairing states: Waiting for first connection, Handshake, Live (Test mode simulates the sequence).
 3. Rotate and revoke keys with the reinstall warnings from the docs.
 
-### Phase 6. Skills and training
+### Phase 6. Skills and training (done)
 1. Capability matrix reused from the landing page's `fleet-matrix`, made into a real list with per-skill pages.
 2. Hold to teach creates a new version and propagates it to capable robots.
 3. Training sessions: episodes flow in, train, evaluate against held-out episodes, publish back.

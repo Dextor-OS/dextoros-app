@@ -8,6 +8,7 @@ import { platformOf } from "@/lib/domain/platforms";
 import type { Kind, PlatformId } from "@/lib/domain/platforms";
 import type { Activity, FleetSnapshot, LogKind, LogLine, PairingState, Point, Robot, Transport } from "@/lib/domain/types";
 import { transportLabel } from "@/lib/engine/connector";
+import { seedSkills } from "@/lib/engine/skills";
 import { FLEET, type RobotSpec } from "@/lib/fleet";
 
 export const SAMPLES = 48;
@@ -360,7 +361,7 @@ export function seedDemoLogs(): Record<string, LogLine[]> {
   };
 }
 
-export const SEED_SNAPSHOT: FleetSnapshot = { robots: seedDemoRobots(), logs: seedDemoLogs() };
+export const SEED_SNAPSHOT: FleetSnapshot = { robots: seedDemoRobots(), logs: seedDemoLogs(), skills: seedSkills(), sessions: [] };
 export const SEED_SEQ = 100;
 
 export type { Activity, PlatformId };

@@ -1,0 +1,263 @@
+/*
+  Capability matrix (src/components/skills/capability-matrix.tsx), ported from the landing page.
+  A scan line sweeps the fleet when the skill changes; each row resolves as the line passes it.
+*/
+
+.fm {
+  --row-h: 50px;
+  --head-h: 34px;
+  --row-ms: 150ms;
+}
+
+.fm-table {
+  width: 100%;
+  min-width: 330px;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.fm-table thead tr {
+  height: var(--head-h);
+}
+
+.fm-table tbody tr {
+  height: var(--row-h);
+}
+
+.fm-table tbody th,
+.fm-table tbody td {
+  border-top: 1px solid var(--color-line);
+}
+
+.fm-col-head {
+  transition: color 200ms ease;
+}
+
+.fm-col-head[data-need="true"] {
+  color: var(--color-volt-ink);
+}
+
+.fm-td {
+  text-align: center;
+  transition: background-color 240ms ease;
+}
+
+.fm-td[data-need="true"] {
+  background-color: rgb(var(--volt-rgb) / 0.035);
+}
+
+.fm-cell {
+  position: relative;
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  vertical-align: middle;
+  border-radius: var(--radius-cell);
+  transition:
+    background-color 260ms ease,
+    box-shadow 260ms ease;
+  transition-delay: var(--reveal, 0ms);
+}
+
+.fm-cell[data-has="true"] {
+  background-color: rgb(var(--fog-rgb) / 0.2);
+}
+
+.fm-cell[data-has="false"] {
+  box-shadow: inset 0 0 0 1px rgb(var(--line-rgb) / 0.14);
+}
+
+.fm-row[data-result="learned"] .fm-cell[data-need="true"][data-has="true"] {
+  background-color: var(--color-volt);
+}
+
+.fm-row[data-result="blocked"] .fm-cell[data-need="true"][data-has="true"] {
+  background-color: rgb(var(--fog-rgb) / 0.55);
+}
+
+/* Missing requirement: a hollow cell struck through. */
+.fm-cell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  background: linear-gradient(
+    135deg,
+    transparent calc(50% - 0.8px),
+    rgb(var(--haze-rgb) / 0.9) calc(50% - 0.8px),
+    rgb(var(--haze-rgb) / 0.9) calc(50% + 0.8px),
+    transparent calc(50% + 0.8px)
+  );
+  box-shadow: inset 0 0 0 1px rgb(var(--haze-rgb) / 0.6);
+  transition: opacity 220ms ease;
+  transition-delay: var(--reveal, 0ms);
+}
+
+.fm-row[data-result="blocked"] .fm-cell[data-need="true"][data-has="false"]::after {
+  opacity: 1;
+}
+
+.fm-row th {
+  box-shadow: inset 2px 0 0 transparent;
+  transition: box-shadow 200ms ease;
+}
+
+.fm-row[data-recording="true"] th {
+  box-shadow: inset 2px 0 0 var(--color-volt);
+}
+
+.fm-scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--head-h);
+  height: 1px;
+  z-index: 1;
+  pointer-events: none;
+  animation: fm-scan calc(var(--rows) * var(--row-ms)) linear both;
+}
+
+.fm-scan::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 40px;
+  background: linear-gradient(to bottom, transparent, rgb(var(--volt-rgb) / 0.08));
+}
+
+.fm-scan::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgb(var(--volt-rgb) / 0.85) 16%, rgb(var(--volt-rgb) / 0.85) 84%, transparent);
+}
+
+@keyframes fm-scan {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  88% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(calc(var(--rows) * var(--row-h)));
+    opacity: 0;
+  }
+}
+
+.fm-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  animation: fm-status 320ms var(--ease-out) both;
+  animation-delay: var(--reveal, 0ms);
+}
+
+@keyframes fm-status {
+  from {
+    opacity: 0;
+    filter: blur(3px);
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+/* Skill selector chips. */
+.fm-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 520;
+  white-space: nowrap;
+  color: var(--color-haze);
+  cursor: pointer;
+  transition:
+    color 200ms ease,
+    background-color 200ms ease;
+}
+
+.fm-chip[aria-checked="true"] {
+  background: var(--color-volt);
+  color: var(--color-on-volt);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .fm-chip:not([aria-checked="true"]):hover {
+    color: var(--color-fog);
+  }
+}
+
+/* Hold to teach. Slow and linear while the user decides, snappy on release. */
+.hold {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
+.hold-fill {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: var(--color-volt);
+  color: var(--color-on-volt);
+  clip-path: inset(0 100% 0 0);
+  transition:
+    clip-path 200ms var(--ease-out),
+    opacity 0ms linear 200ms;
+}
+
+.hold[data-state="holding"] .hold-fill {
+  clip-path: inset(0 0 0 0);
+  transition: clip-path var(--hold-ms) linear;
+}
+
+.hold[data-state="done"] .hold-fill {
+  clip-path: inset(0 0 0 0);
+  opacity: 0;
+  transition: opacity 600ms var(--ease-out);
+}
+
+@media (max-width: 639px) {
+  .fm {
+    --row-h: 58px;
+  }
+
+  .fm-table {
+    min-width: 0;
+  }
+
+  .fm-cell {
+    width: 11px;
+    height: 11px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fm-scan {
+    display: none;
+  }
+
+  .fm-status {
+    animation-name: fade;
+  }
+}

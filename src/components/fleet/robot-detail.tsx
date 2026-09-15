@@ -10,7 +10,8 @@ import { platformLabel } from "@/lib/domain/platforms";
 import type { Robot } from "@/lib/domain/types";
 import { CAPABILITIES } from "@/lib/fleet";
 import { isLive, isOnline, lastLatency, lastSeen, location, PAIRING_LABEL, SAMPLES } from "@/lib/engine/sim";
-import { useRobot } from "@/lib/store/fleet";
+import { skillsFor } from "@/lib/engine/skills";
+import { useRobot, useSkills } from "@/lib/store/fleet";
 import { robotPath } from "@/lib/routes";
 
 const TRANSPORT_LABEL: Record<Robot["transport"], string> = {
@@ -46,6 +47,7 @@ function metrics(robot: Robot) {
 
 export function RobotDetail({ id }: { id: string }) {
   const robot = useRobot(id);
+  const skills = useSkills();
 
   if (!robot) {
     return (
@@ -73,7 +75,7 @@ export function RobotDetail({ id }: { id: string }) {
         }
       />
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
         <section className="panel p-4 md:p-5" aria-label="Telemetry">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="inline-flex items-center gap-2 rounded-tag px-2.5 py-1 text-[12.5px] text-haze ring-1 ring-line-strong">
@@ -120,9 +122,23 @@ export function RobotDetail({ id }: { id: string }) {
 
         </section>
 
-        <section className="panel p-4" aria-label={`Console for ${robot.id}`}>
+        <section className="panel p-4" aria-label={`Skills on ${robot.id}`}>
+          <p className="text-[13px] font-medium text-fog">Skills</p>
+          <ul className="mt-2 divide-y divide-line">
+            {skillsFor(robot, skills).map(({ skill, status }) => (
+              <li key={skill.id} className="flex items-baseline justify-between gap-3 py-2 text-[13px]">
+                <Link href={`/skills/${skill.id}`} className="text-fog hover:underline">
+                  {skill.name}
+                </Link>
+                <span className={clsx("text-right", status.kind === "blocked" ? "text-haze" : status.kind === "pending" ? "text-dim" : "mono text-[11.5px] text-volt-ink")}>{status.text}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <section className="panel p-4 lg:col-span-2" aria-label={`Console for ${robot.id}`}>
           <p className="mb-3 text-[13px] font-medium text-fog">Console</p>
-          <RobotConsole robot={robot} logHeight="h-[280px]" />
+          <RobotConsole robot={robot} logHeight="h-[240px]" />
         </section>
       </div>
     </>

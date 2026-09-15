@@ -1,0 +1,49 @@
+/* Training sessions: one tick per episode. Filled ticks succeeded, hollow ticks failed. */
+
+.ep {
+  flex: none;
+  width: 4px;
+  height: 16px;
+  border-radius: 1.5px;
+  background: rgb(var(--fog-rgb) / 0.72);
+  transform-origin: bottom;
+  transition:
+    opacity 200ms var(--ease-out),
+    transform 200ms var(--ease-out);
+}
+
+.ep[data-ok="false"] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px rgb(var(--haze-rgb) / 0.55);
+}
+
+@starting-style {
+  .ep {
+    opacity: 0;
+    transform: scaleY(0.3);
+  }
+}
+
+/* Progress is linear on purpose: it reports time, it should not ease. */
+.train-progress {
+  transform-origin: left;
+  transition: transform 900ms linear;
+}
+
+.chip-in {
+  display: inline-block;
+  animation: fade-up 360ms var(--ease-out) both;
+  animation-delay: var(--d, 0ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @starting-style {
+    .ep {
+      transform: none;
+    }
+  }
+
+  .chip-in {
+    animation-name: fade;
+  }
+}

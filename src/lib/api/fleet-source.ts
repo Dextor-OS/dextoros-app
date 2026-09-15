@@ -30,6 +30,13 @@ export interface FleetSource {
   /** Test mode and demo robots only: play the waiting, handshake, live sequence. */
   simulatePairing(robotId: string): void;
 
+  /** Hold to teach: a new demonstration on the teacher robot, shared with every capable robot. */
+  teachSkill(skillId: string, teacherId: string): void;
+  /** Collect episodes from every capable, online robot, train, evaluate and publish a new version. */
+  startSession(skillId: string): string;
+  pauseSession(sessionId: string): void;
+  resumeSession(sessionId: string): void;
+
   removeDemoFleet(): void;
   restoreDemoFleet(): void;
 }

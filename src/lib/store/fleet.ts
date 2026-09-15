@@ -19,6 +19,18 @@ export function useRobotLogs(id: string) {
   return useFleet().logs[id] ?? [];
 }
 
+export function useSkills() {
+  return useFleet().skills;
+}
+
+export function useSkill(id: string) {
+  return useFleet().skills.find((s) => s.id === id);
+}
+
+export function useSessions() {
+  return useFleet().sessions;
+}
+
 export function useLiveCount() {
   const { robots } = useFleet();
   return { live: robots.filter(isOnline).length, total: robots.length };
@@ -38,6 +50,10 @@ export const fleetActions = {
   revokeKey: (robotId: string) => getFleetSource().revokeKey(robotId),
   regenerateConnector: (robotId: string) => getFleetSource().regenerateConnector(robotId),
   simulatePairing: (robotId: string) => getFleetSource().simulatePairing(robotId),
+  teachSkill: (skillId: string, teacherId: string) => getFleetSource().teachSkill(skillId, teacherId),
+  startSession: (skillId: string) => getFleetSource().startSession(skillId),
+  pauseSession: (sessionId: string) => getFleetSource().pauseSession(sessionId),
+  resumeSession: (sessionId: string) => getFleetSource().resumeSession(sessionId),
   removeDemoFleet: () => getFleetSource().removeDemoFleet(),
   restoreDemoFleet: () => getFleetSource().restoreDemoFleet(),
 };

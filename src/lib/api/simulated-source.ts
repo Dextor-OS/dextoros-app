@@ -1,7 +1,8 @@
 import type { FleetSource } from "@/lib/api/fleet-source";
 import type { PlatformId } from "@/lib/domain/platforms";
-import type { FleetSnapshot, LogLine, PairingState, Robot, Transport } from "@/lib/domain/types";
+import type { FleetSnapshot, LogLine, PairingState, Robot, SkillState, TrainingSession, Transport } from "@/lib/domain/types";
 import { newPairingKey } from "@/lib/engine/connector";
+import { learnOnConnect, startSession, teachSkill, tickSession } from "@/lib/engine/skills";
 import {
   bringLive,
   createRobot,
@@ -20,7 +21,8 @@ const STORAGE_KEY = "dextoros-app:fleet";
 
 /** What survives a reload: the demo-fleet choice and the robots the user connected. Telemetry and logs do not. */
 type StoredRobot = { id: string; platform: PlatformId; transport: Transport; pairingKey: string; pairing: PairingState };
-type Persisted = { demoRemoved: boolean; robots: StoredRobot[] };
+type Persisted = { demoRemoved: boolean; robots: StoredRobot[]; skills?: SkillState[]; sessions?: TrainingSession[] };
+const SESSION_LIMIT = 20;
 
 const clock = () => new Date().toLocaleTimeString("en-GB", { hour12: false });
 
@@ -69,13 +71,13 @@ export class SimulatedFleetSource implements FleetSource {
       this.line(robotId, time, "cmd", raw.trim().replace(/\s+/g, " ")),
       ...result.lines.map(([kind, text]) => this.line(robotId, time, kind, text)),
     ];
-    this.commit({ robots: this.replace(result.robot), logs: this.append(this.state.logs, entries) });
+    this.commit({ ...this.state, robots: this.replace(result.robot), logs: this.append(this.state.logs, entries) });
   };
 
   addRobot = (input: Omit<NewRobotInput, "pairingKey">) => {
     const robot = createRobot({ ...input, pairingKey: newPairingKey() });
     const entry = this.line(robot.id, clock(), "event", "Connector generated. Waiting for first connection");
-    this.commit({ robots: [...this.state.robots, robot], logs: this.append(this.state.logs, [entry]) });
+    this.commit({ ...this.state, robots: [...this.state.robots, robot], logs: this.append(this.state.logs, [entry]) });
     this.save();
     return robot;
   };
@@ -85,7 +87,13 @@ export class SimulatedFleetSource implements FleetSource {
     const robots = this.state.robots.filter((r) => r.id !== robotId);
     const logs = { ...this.state.logs };
     delete logs[robotId];
-    this.commit({ robots, logs });
+    const skills = this.state.skills.map((k) => {
+      if (!(robotId in k.learned)) return k;
+      const learned = { ...k.learned };
+      delete learned[robotId];
+      return { ...k, learned };
+    });
+    this.commit({ ...this.state, robots, logs, skills });
     this.save();
   };
 
@@ -115,21 +123,58 @@ export class SimulatedFleetSource implements FleetSource {
       const current = this.find(robotId);
       if (!current) return;
       const result = bringLive(current);
-      this.update(robotId, () => result.robot, ...result.events);
+      const learned = learnOnConnect(result.robot, this.state.skills);
+      this.commit({ ...this.state, skills: learned.skills });
+      this.update(robotId, () => result.robot, ...result.events, ...learned.events);
     }, 3200);
     this.pairingTimers.set(robotId, [handshake, live]);
   };
 
+  teachSkill = (skillId: string, teacherId: string) => {
+    const skill = this.state.skills.find((k) => k.id === skillId);
+    if (!skill) return;
+    const time = clock();
+    const result = teachSkill(skill, this.state.robots, teacherId, time);
+    const entries = result.events.map(([robotId, text]) => this.line(robotId, time, "event", text));
+    this.commit({
+      ...this.state,
+      skills: this.state.skills.map((k) => (k.id === skillId ? result.skill : k)),
+      logs: this.append(this.state.logs, entries),
+    });
+    this.save();
+  };
+
+  startSession = (skillId: string) => {
+    const skill = this.state.skills.find((k) => k.id === skillId);
+    if (!skill) return "";
+    const id = `s${Date.now().toString(36)}`;
+    const session = startSession(skill, this.state.robots, id, clock());
+    this.commit({ ...this.state, sessions: [session, ...this.state.sessions].slice(0, SESSION_LIMIT) });
+    this.save();
+    return id;
+  };
+
+  pauseSession = (sessionId: string) => this.setPaused(sessionId, true);
+  resumeSession = (sessionId: string) => this.setPaused(sessionId, false);
+
+  private setPaused(sessionId: string, paused: boolean) {
+    this.commit({
+      ...this.state,
+      sessions: this.state.sessions.map((x) => (x.id === sessionId && x.phase === "collecting" ? { ...x, paused } : x)),
+    });
+    this.save();
+  }
+
   removeDemoFleet = () => {
     const robots = this.state.robots.filter((r) => !r.demo);
     const logs = Object.fromEntries(robots.map((r) => [r.id, this.state.logs[r.id] ?? []]));
-    this.commit({ robots, logs });
+    this.commit({ ...this.state, robots, logs });
     this.save();
   };
 
   restoreDemoFleet = () => {
     if (this.state.robots.some((r) => r.demo)) return;
-    this.commit({ robots: [...seedDemoRobots(), ...this.state.robots], logs: { ...seedDemoLogs(), ...this.state.logs } });
+    this.commit({ ...this.state, robots: [...seedDemoRobots(), ...this.state.robots], logs: { ...seedDemoLogs(), ...this.state.logs } });
     this.save();
   };
 
@@ -146,7 +191,7 @@ export class SimulatedFleetSource implements FleetSource {
     if (!robot) return;
     const time = clock();
     const entries = events.map((text) => this.line(robotId, time, "event", text));
-    this.commit({ robots: this.replace(change(robot)), logs: entries.length ? this.append(this.state.logs, entries) : this.state.logs });
+    this.commit({ ...this.state, robots: this.replace(change(robot)), logs: entries.length ? this.append(this.state.logs, entries) : this.state.logs });
     this.save();
   }
 
@@ -163,7 +208,28 @@ export class SimulatedFleetSource implements FleetSource {
       for (const text of result.events) entries.push(this.line(robot.id, time, "event", text));
       return result.robot;
     });
-    this.commit({ robots, logs: entries.length ? this.append(this.state.logs, entries) : this.state.logs });
+    let skills = this.state.skills;
+    let sessionsChanged = false;
+    const sessions = this.state.sessions.map((session) => {
+      if (session.phase === "published") return session;
+      const skill = skills.find((k) => k.id === session.skillId);
+      if (!skill) return session;
+      const result = tickSession(session, skill, robots, Math.random);
+      if (result.session !== session) sessionsChanged = true;
+      if (result.skill !== skill) {
+        const stamped = { ...result.skill, versions: result.skill.versions.map((v, i) => (i === 0 && !v.time ? { ...v, time } : v)) };
+        skills = skills.map((k) => (k.id === skill.id ? stamped : k));
+      }
+      for (const [robotId, text] of result.events) entries.push(this.line(robotId, time, "event", text));
+      return result.session;
+    });
+    this.commit({
+      robots,
+      logs: entries.length ? this.append(this.state.logs, entries) : this.state.logs,
+      skills,
+      sessions: sessionsChanged ? sessions : this.state.sessions,
+    });
+    if (sessionsChanged || skills !== this.state.skills) this.saveSoon();
   }
 
   private line(robotId: string, time: string, kind: LogLine["kind"], text: string): LogLine {
@@ -202,10 +268,23 @@ export class SimulatedFleetSource implements FleetSource {
         robots = [...robots, robot];
         logs = { ...logs, [robot.id]: [] };
       }
-      this.commit({ robots, logs });
+      const skills = saved.skills?.length ? saved.skills : this.state.skills;
+      const sessions = saved.sessions ?? [];
+      this.commit({ robots, logs, skills, sessions });
     } catch {
       // Blocked storage: start from the seed.
     }
+  }
+
+  private saveTimer: number | null = null;
+
+  /** Sessions change every tick; write them at most once a few seconds. */
+  private saveSoon() {
+    if (this.saveTimer !== null || typeof window === "undefined") return;
+    this.saveTimer = window.setTimeout(() => {
+      this.saveTimer = null;
+      this.save();
+    }, 3000);
   }
 
   private save() {
@@ -214,6 +293,8 @@ export class SimulatedFleetSource implements FleetSource {
       robots: this.state.robots
         .filter((r) => !r.demo)
         .map((r) => ({ id: r.id, platform: r.platform, transport: r.transport, pairingKey: r.pairingKey, pairing: r.pairing })),
+      skills: this.state.skills,
+      sessions: this.state.sessions,
     };
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
