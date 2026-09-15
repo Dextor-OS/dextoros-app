@@ -1,4 +1,5 @@
-import type { FleetSnapshot } from "@/lib/domain/types";
+import type { FleetSnapshot, Robot } from "@/lib/domain/types";
+import type { NewRobotInput } from "@/lib/engine/sim";
 
 /*
   The one door between screens and fleet data. The simulated source implements it today; the live source
@@ -14,7 +15,21 @@ export interface FleetSource {
   /** Begin streaming. Idempotent. Browser only. */
   start(): void;
   stop(): void;
+
   sendCommand(robotId: string, raw: string): void;
+
+  /** Generate a connector for a new robot. Returns the robot, waiting for its first connection. */
+  addRobot(input: Omit<NewRobotInput, "pairingKey">): Robot;
+  removeRobot(robotId: string): void;
+  /** Replace the pairing key. The robot drops to waiting until the connector is reinstalled. */
+  rotateKey(robotId: string): void;
+  /** Cut a robot off. It needs a new connector before it can connect again. */
+  revokeKey(robotId: string): void;
+  /** After a revoke: a fresh key, back to waiting. */
+  regenerateConnector(robotId: string): void;
+  /** Test mode and demo robots only: play the waiting, handshake, live sequence. */
+  simulatePairing(robotId: string): void;
+
   removeDemoFleet(): void;
   restoreDemoFleet(): void;
 }

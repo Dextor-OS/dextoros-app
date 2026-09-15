@@ -3,7 +3,7 @@
 import { useSyncExternalStore } from "react";
 import { getFleetSource } from "@/lib/api";
 import type { FleetFilter, Robot } from "@/lib/domain/types";
-import { isOnline } from "@/lib/engine/sim";
+import { isOnline, type NewRobotInput } from "@/lib/engine/sim";
 
 /** The live fleet snapshot. Re-renders once a second while robots stream. */
 export function useFleet() {
@@ -32,6 +32,12 @@ export function filterRobots(robots: Robot[], filter: FleetFilter) {
 /** Actions. Thin wrappers so components never touch the source. */
 export const fleetActions = {
   sendCommand: (robotId: string, raw: string) => getFleetSource().sendCommand(robotId, raw),
+  addRobot: (input: Omit<NewRobotInput, "pairingKey">) => getFleetSource().addRobot(input),
+  removeRobot: (robotId: string) => getFleetSource().removeRobot(robotId),
+  rotateKey: (robotId: string) => getFleetSource().rotateKey(robotId),
+  revokeKey: (robotId: string) => getFleetSource().revokeKey(robotId),
+  regenerateConnector: (robotId: string) => getFleetSource().regenerateConnector(robotId),
+  simulatePairing: (robotId: string) => getFleetSource().simulatePairing(robotId),
   removeDemoFleet: () => getFleetSource().removeDemoFleet(),
   restoreDemoFleet: () => getFleetSource().restoreDemoFleet(),
 };

@@ -6,8 +6,9 @@ import { useState } from "react";
 import { RobotConsole } from "@/components/console/robot-console";
 import { platformLabel } from "@/lib/domain/platforms";
 import type { FleetFilter } from "@/lib/domain/types";
-import { activityLabel, isOnline, lastSeen } from "@/lib/engine/sim";
+import { activityLabel, isLive, isOnline, lastSeen } from "@/lib/engine/sim";
 import { filterRobots, useFleet } from "@/lib/store/fleet";
+import { robotPath } from "@/lib/routes";
 
 const FILTERS: FleetFilter[] = ["all", "online", "offline"];
 
@@ -92,14 +93,14 @@ export function FleetConsole({ initialId }: { initialId?: string }) {
       <div className="min-w-0 p-4 md:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <Link href={`/fleet/${selected.id}`} className="mono text-[15px] text-fog hover:underline">
+            <Link href={robotPath(selected.id)} className="mono text-[15px] text-fog hover:underline">
               {selected.id}
             </Link>
             <p className="text-[13px] text-dim">{platformLabel(selected.platform)}</p>
           </div>
           <p className="inline-flex items-center gap-2 rounded-tag px-2.5 py-1 text-[12.5px] text-haze ring-1 ring-line-strong">
             {online && <span className="live-dot" aria-hidden="true" />}
-            {online ? activityLabel(selected) : `Offline, last seen ${lastSeen(selected)}`}
+            {online || !isLive(selected) ? activityLabel(selected) : `Offline, last seen ${lastSeen(selected)}`}
           </p>
         </div>
         <div className="mt-4">

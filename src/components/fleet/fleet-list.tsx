@@ -5,8 +5,9 @@ import Link from "next/link";
 import { useState } from "react";
 import { platformLabel } from "@/lib/domain/platforms";
 import type { FleetFilter, Robot } from "@/lib/domain/types";
-import { activityLabel, isOnline, lastLatency } from "@/lib/engine/sim";
+import { activityLabel, isLive, isOnline, lastLatency } from "@/lib/engine/sim";
 import { filterRobots, useFleet } from "@/lib/store/fleet";
+import { robotPath } from "@/lib/routes";
 
 const FILTERS: FleetFilter[] = ["all", "online", "offline"];
 
@@ -16,6 +17,7 @@ function signal(robot: Robot) {
 }
 
 function power(robot: Robot) {
+  if (!isLive(robot)) return "No data";
   if (robot.kind === "arm") return isOnline(robot) ? `${robot.temp.toFixed(1)} °C` : "No data";
   return `${Math.round(robot.battery)}%`;
 }
@@ -62,8 +64,14 @@ export function FleetList() {
               return (
                 <tr key={robot.id} className="border-t border-line">
                   <td className="px-4 py-3">
-                    <Link href={`/fleet/${robot.id}`} className="inline-flex items-center gap-2 rounded-tag hover:underline">
-                      {online ? <span className="live-dot" aria-label="Connected" /> : <span className="inline-block size-[7px] rounded-full ring-1 ring-inset ring-line-strong" aria-label="Offline" />}
+                    <Link href={robotPath(robot.id)} className="inline-flex items-center gap-2 rounded-tag hover:underline">
+                      {online ? (
+                        <span className="live-dot" aria-label="Connected" />
+                      ) : isLive(robot) ? (
+                        <span className="inline-block size-[7px] rounded-full ring-1 ring-inset ring-line-strong" aria-label="Offline" />
+                      ) : (
+                        <span className="waiting-dot" aria-label="Not paired" />
+                      )}
                       <span className="mono font-medium text-fog">{robot.id}</span>
                     </Link>
                   </td>

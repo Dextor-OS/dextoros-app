@@ -3,8 +3,8 @@ import type { CapabilityId } from "@/lib/fleet";
 
 export type Transport = "websocket" | "mqtt" | "ros2" | "serial" | "test";
 
-/** Pairing states from keys-and-pairing.md. */
-export type PairingState = "waiting" | "handshake" | "live";
+/** Pairing states from keys-and-pairing.md, plus "revoked" for a robot cut off until it gets a new connector. */
+export type PairingState = "waiting" | "handshake" | "live" | "revoked";
 
 export type Activity = "working" | "idle" | "moving" | "docking" | "charging" | "homing" | "paused" | "offline";
 
@@ -19,6 +19,8 @@ export type Robot = {
   caps: CapabilityId[];
   transport: Transport;
   pairing: PairingState;
+  /** Written into the connector file. Treat like a password. */
+  pairingKey: string;
   /** Part of the demo fleet, removable in one click from settings. */
   demo: boolean;
 

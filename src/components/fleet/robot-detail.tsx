@@ -9,8 +9,9 @@ import { PageHeader } from "@/components/shell/page-header";
 import { platformLabel } from "@/lib/domain/platforms";
 import type { Robot } from "@/lib/domain/types";
 import { CAPABILITIES } from "@/lib/fleet";
-import { isOnline, lastLatency, lastSeen, location, SAMPLES } from "@/lib/engine/sim";
+import { isLive, isOnline, lastLatency, lastSeen, location, PAIRING_LABEL, SAMPLES } from "@/lib/engine/sim";
 import { useRobot } from "@/lib/store/fleet";
+import { robotPath } from "@/lib/routes";
 
 const TRANSPORT_LABEL: Record<Robot["transport"], string> = {
   websocket: "WebSocket",
@@ -23,6 +24,10 @@ const TRANSPORT_LABEL: Record<Robot["transport"], string> = {
 /** Telemetry that fits the body (docs: fleet-dashboard.md). Offline robots show No data or No signal. */
 function metrics(robot: Robot) {
   const online = isOnline(robot);
+  if (!isLive(robot)) {
+    const labels = robot.kind === "arm" ? ["Motor temp", "Cycle time", "Gripper", "Latency"] : ["Battery", "Speed", "Location", "Latency"];
+    return labels.map((label) => ({ label, value: label === "Latency" ? "No signal" : "No data" }));
+  }
   if (robot.kind === "arm") {
     return [
       { label: "Motor temp", value: online ? `${robot.temp.toFixed(1)} °C` : "No data" },
@@ -61,7 +66,7 @@ export function RobotDetail({ id }: { id: string }) {
         title={robot.id}
         lede={`${platformLabel(robot.platform)} over ${TRANSPORT_LABEL[robot.transport]}`}
         actions={
-          <Link href={`/fleet/${robot.id}/connector`} className="btn btn-ghost btn-sm">
+          <Link href={robotPath(robot.id, "connector")} className="btn btn-ghost btn-sm">
             <Plugs size={14} aria-hidden="true" />
             Connector
           </Link>
@@ -73,7 +78,7 @@ export function RobotDetail({ id }: { id: string }) {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="inline-flex items-center gap-2 rounded-tag px-2.5 py-1 text-[12.5px] text-haze ring-1 ring-line-strong">
               {online && <span className="live-dot" aria-hidden="true" />}
-              {online ? "Streaming telemetry" : `Offline, last seen ${lastSeen(robot)}`}
+              {online ? "Streaming telemetry" : isLive(robot) ? `Offline, last seen ${lastSeen(robot)}` : PAIRING_LABEL[robot.pairing]}
             </p>
             <div className="flex flex-wrap gap-1.5">
               {CAPABILITIES.filter((c) => robot.caps.includes(c.id)).map((c) => (

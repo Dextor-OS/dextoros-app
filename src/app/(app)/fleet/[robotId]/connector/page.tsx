@@ -1,12 +1,13 @@
-import { ComingSoon } from "@/components/shell/coming-soon";
-import { PageHeader } from "@/components/shell/page-header";
+import type { Metadata } from "next";
+import { decodeParam } from "@/lib/routes";
+import { ConnectorPanel } from "@/components/connect/connector-panel";
+
+export async function generateMetadata({ params }: PageProps<"/fleet/[robotId]/connector">): Promise<Metadata> {
+  const robotId = decodeParam((await params).robotId);
+  return { title: `${robotId} connector` };
+}
 
 export default async function ConnectorPage({ params }: PageProps<"/fleet/[robotId]/connector">) {
-  const { robotId } = await params;
-  return (
-    <>
-      <PageHeader title={`${robotId} connector`} lede="Connector file, install command and pairing key." />
-      <ComingSoon phase={5} items={["dextoros-connector.yaml preview and download", "Install command", "Pairing state", "Rotate and revoke key"]} />
-    </>
-  );
+  const robotId = decodeParam((await params).robotId);
+  return <ConnectorPanel id={robotId} />;
 }

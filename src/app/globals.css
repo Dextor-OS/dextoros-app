@@ -381,3 +381,31 @@
     transition-delay: 0ms;
   }
 }
+
+/* Waiting for a robot: a quiet breathing dot in a neutral tone, never the live accent. */
+.waiting-dot {
+  display: inline-block;
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--color-haze);
+  animation: breathe 1.8s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .waiting-dot {
+    animation: none;
+    opacity: 0.7;
+  }
+}

@@ -11,7 +11,7 @@ Target URL: `app.dextoros.app`. The landing page's `primaryCta.href` in `src/lib
 | Area | Choice | Why |
 | --- | --- | --- |
 | Framework | Next.js 16 App Router, React 19, TypeScript, Tailwind 4 | Same as the landing page, so tokens, fonts and components port over unchanged. |
-| Location | `dextoros-portal/`, a sibling of `DEXTOROS/` | Separate deploy and separate Vercel project. Shared code is copied, not linked, until a monorepo is worth it. |
+| Location | `dextoros-app/`, a sibling of `DEXTOROS/` | Separate deploy and separate Vercel project. Shared code is copied, not linked, until a monorepo is worth it. |
 | Animation | Motion only. No GSAP, no three.js. | The portal is a tool. Motion covers list reorders, drawers and state changes; the landing page's scroll and 3D work has no place here. |
 | State | Zustand store per domain (fleet, skills, rules, session) | Small, typed, works with a simulated engine now and a WebSocket feed later. |
 | Data, phase 1 | Client-side fleet engine (ported from the landing page's console simulation), persisted to localStorage | No backend exists yet. The demo fleet in the docs is exactly this simulation, so it ships real value. |
@@ -76,7 +76,7 @@ Each phase ends with `npm run lint` and `npx tsc --noEmit` clean and the app run
 2. Replies and errors exactly as the docs list them, including the offline rule (only `help` and `status`).
 3. Same component embedded on the robot page.
 
-### Phase 5. Connect a robot
+### Phase 5. Connect a robot (done)
 1. Wizard: name to slug, platform, transport, YAML preview, download, install command copy.
 2. Pairing states: Waiting for first connection, Handshake, Live (Test mode simulates the sequence).
 3. Rotate and revoke keys with the reinstall warnings from the docs.
@@ -105,7 +105,7 @@ Each phase ends with `npm run lint` and `npx tsc --noEmit` clean and the app run
 1. PWA manifest and icons, standalone display, offline shell.
 2. Accessibility pass: keyboard on every control, reduced motion, focus order, contrast in both themes.
 3. Playwright smoke tests for each route and the console command set.
-4. Vercel project `dextoros-portal`, `app.dextoros.app`, then point the landing page CTA here.
+4. Vercel project `dextoros-app`, `app.dextoros.app`, then point the landing page CTA here.
 
 ## Design rules carried over
 

@@ -6,7 +6,8 @@
 
 import { platformOf } from "@/lib/domain/platforms";
 import type { Kind, PlatformId } from "@/lib/domain/platforms";
-import type { Activity, FleetSnapshot, LogKind, LogLine, Point, Robot, Transport } from "@/lib/domain/types";
+import type { Activity, FleetSnapshot, LogKind, LogLine, PairingState, Point, Robot, Transport } from "@/lib/domain/types";
+import { transportLabel } from "@/lib/engine/connector";
 import { FLEET, type RobotSpec } from "@/lib/fleet";
 
 export const SAMPLES = 48;
@@ -47,7 +48,15 @@ export const QUICK: Record<Kind, string[]> = {
   legged: ["status", "move_to C5", "dock", "pause"],
 };
 
-export const isOnline = (robot: Robot) => robot.activity !== "offline";
+export const isLive = (robot: Robot) => robot.pairing === "live";
+export const isOnline = (robot: Robot) => isLive(robot) && robot.activity !== "offline";
+
+export const PAIRING_LABEL: Record<PairingState, string> = {
+  waiting: "Waiting for first connection",
+  handshake: "Handshake",
+  live: "Live",
+  revoked: "Key revoked",
+};
 
 export function lastLatency(robot: Robot) {
   return robot.latency[robot.latency.length - 1];
@@ -76,6 +85,7 @@ export function lastSeen(robot: Robot) {
 }
 
 export function activityLabel(robot: Robot) {
+  if (!isLive(robot)) return PAIRING_LABEL[robot.pairing];
   switch (robot.activity) {
     case "working":
       return "Working";
@@ -97,6 +107,7 @@ export function activityLabel(robot: Robot) {
 }
 
 export function describe(robot: Robot) {
+  if (!isLive(robot)) return `${robot.id} has not connected yet. ${PAIRING_LABEL[robot.pairing]}`;
   if (!isOnline(robot)) return `${robot.id} is offline. Last seen ${lastSeen(robot)}`;
   if (robot.kind === "arm") {
     return `${activityLabel(robot)}. Motor ${robot.temp.toFixed(1)} °C, cycle ${robot.cycle.toFixed(1)} s, gripper ${robot.gripper}, ${lastLatency(robot)} ms`;
@@ -106,6 +117,7 @@ export function describe(robot: Robot) {
 
 /** One second of simulated time. Returns the new robot and any events it raised. */
 export function tick(robot: Robot, t: number): { robot: Robot; events: string[] } {
+  if (!isLive(robot)) return { robot, events: [] };
   if (!isOnline(robot)) return { robot: { ...robot, offlineFor: robot.offlineFor + 1 }, events: [] };
   const events: string[] = [];
   const u: Robot = { ...robot };
@@ -180,6 +192,9 @@ export function execute(robot: Robot, raw: string): { robot: Robot; lines: [LogK
 
   if (command === "help") return { robot: u, lines: [["event", `${u.id} accepts ${COMMANDS[u.kind].join(", ")}`]] };
   if (command === "status") return { robot: u, lines: [["event", describe(u)]] };
+  if (!isLive(u)) {
+    return { robot: u, lines: [failed(`${u.id} has not connected yet, so nothing was sent. ${PAIRING_LABEL[u.pairing]}`)] };
+  }
   if (!isOnline(u)) {
     return { robot: u, lines: [failed(`${u.id} is offline, so nothing was sent. Last seen ${lastSeen(u)}`)] };
   }
@@ -233,18 +248,18 @@ export function execute(robot: Robot, raw: string): { robot: Robot; lines: [LogK
 
 /* Seed: the demo fleet with a plausible morning on the floor. Deterministic, so server and client render the same. */
 
-type Seed = Partial<Robot> & { transport: Transport };
+type Seed = Partial<Robot> & { transport: Transport; pairingKey: string };
 
 const SEEDS: Record<string, Seed> = {
-  "ARM-02": { transport: "ros2", activity: "working", temp: 42.6, cycle: 6.4, joints: [12.4, -48.2, 63.9, -15.7, 90.3, 4.1], gripper: "closed", latency: seedLatency(31) },
-  "AMR-11": { transport: "websocket", activity: "moving", battery: 64.2, speed: 1.1, temp: 36.1, x: 15, y: 8, target: bay("B3"), latency: seedLatency(38) },
-  "QDR-04": { transport: "mqtt", activity: "charging", battery: 23.7, temp: 33.8, latency: seedLatency(44) },
-  "MM-01": { transport: "websocket", activity: "idle", battery: 88.4, temp: 35.2, x: 6, y: 12, joints: [0, 0, 0, 0, 0, 0], gripper: "open", latency: seedLatency(35) },
-  "HUM-03": { transport: "websocket", activity: "offline", battery: 51, x: 12, y: 16, latency: [], offlineFor: 14 * 60 },
-  "DLT-07": { transport: "serial", activity: "working", temp: 38.9, cycle: 1.2, joints: [8.2, -12.4, 5.1], gripper: "open", latency: seedLatency(27) },
+  "ARM-02": { pairingKey: "dxk_3f9a1c77e2b04d5a8c6e1f0b9d2a4c71", transport: "ros2", activity: "working", temp: 42.6, cycle: 6.4, joints: [12.4, -48.2, 63.9, -15.7, 90.3, 4.1], gripper: "closed", latency: seedLatency(31) },
+  "AMR-11": { pairingKey: "dxk_8b2e6d10a4c9f37e5d1b0a6c2e8f4d93", transport: "websocket", activity: "moving", battery: 64.2, speed: 1.1, temp: 36.1, x: 15, y: 8, target: bay("B3"), latency: seedLatency(38) },
+  "QDR-04": { pairingKey: "dxk_c41d7e3a9f0b62d5e8a1c7f3b9d04e26", transport: "mqtt", activity: "charging", battery: 23.7, temp: 33.8, latency: seedLatency(44) },
+  "MM-01": { pairingKey: "dxk_5e0c9a2d7b4f18e3c6a9d1f0b7e2c845", transport: "websocket", activity: "idle", battery: 88.4, temp: 35.2, x: 6, y: 12, joints: [0, 0, 0, 0, 0, 0], gripper: "open", latency: seedLatency(35) },
+  "HUM-03": { pairingKey: "dxk_a7d3f18c0e5b94a2d6c1e8f7b3a0d519", transport: "websocket", activity: "offline", battery: 51, x: 12, y: 16, latency: [], offlineFor: 14 * 60 },
+  "DLT-07": { pairingKey: "dxk_2c8e4b0d9a1f76c3e5b2d8a0f4c9e167", transport: "serial", activity: "working", temp: 38.9, cycle: 1.2, joints: [8.2, -12.4, 5.1], gripper: "open", latency: seedLatency(27) },
 };
 
-export function makeRobot(spec: RobotSpec, overrides: Partial<Robot> & { transport: Transport; demo: boolean }): Robot {
+export function makeRobot(spec: RobotSpec, overrides: Partial<Robot> & { transport: Transport; pairingKey: string; demo: boolean }): Robot {
   const platform = platformOf(spec.platform);
   return {
     id: spec.id,
@@ -268,6 +283,45 @@ export function makeRobot(spec: RobotSpec, overrides: Partial<Robot> & { transpo
     offlineFor: 0,
     ...overrides,
   };
+}
+
+export type NewRobotInput = { name: string; platform: PlatformId; transport: Transport; pairingKey: string };
+
+/** A robot the user just generated a connector for. It waits, offline and without telemetry, until it pairs. */
+export function createRobot(input: NewRobotInput): Robot {
+  const platform = platformOf(input.platform);
+  return makeRobot(
+    { id: input.name.trim(), platform: input.platform, caps: platform.defaultCaps },
+    { transport: input.transport, pairingKey: input.pairingKey, demo: false, pairing: "waiting", activity: "offline", latency: [], battery: 0, temp: 0 },
+  );
+}
+
+/** Telemetry for a robot that just went live, so it looks like it has been reporting for a while. */
+export function bringLive(robot: Robot): { robot: Robot; events: string[] } {
+  const base = 28 + Math.round(Math.random() * 14);
+  const arm = robot.kind === "arm";
+  const live: Robot = {
+    ...robot,
+    pairing: "live",
+    activity: "idle",
+    resumeTo: null,
+    offlineFor: 0,
+    latency: seedLatency(base),
+    battery: arm ? 100 : 72 + Math.round(Math.random() * 26),
+    temp: arm ? 38 + Math.round(Math.random() * 40) / 10 : 34,
+    cycle: 0,
+    joints: arm ? robot.caps.length && robot.platform === "delta-picker" ? [0, 0, 0] : [0, 0, 0, 0, 0, 0] : [],
+    gripper: "open",
+    x: 0,
+    y: 0,
+    target: null,
+  };
+  return { robot: live, events: [`Connected over ${transportLabel(robot.transport)}, ${robot.caps.length} capabilities reported`] };
+}
+
+/** Rotate or revoke: the robot drops back to waiting (or revoked) and stops reporting until it reconnects. */
+export function disconnect(robot: Robot, pairing: "waiting" | "revoked"): Robot {
+  return { ...robot, pairing, activity: "offline", resumeTo: null, target: null, speed: 0, latency: [], offlineFor: 0 };
 }
 
 export function seedDemoRobots(): Robot[] {
