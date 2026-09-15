@@ -1,0 +1,383 @@
+@import "tailwindcss";
+
+/*
+  DextorOS portal tokens. Copied from the landing page (../DEXTOROS/src/app/globals.css) so both feel like one product.
+  Accent rule: --color-volt is reserved for live and active states only.
+  Radius rule: panels 14px, controls 10px, tags 6px, data cells 3px.
+  Motion rule: custom curves only, UI under 300ms.
+*/
+@theme {
+  --color-void: #0c0a15;
+  --color-deck: #0e0c1c;
+  --color-brand: #2b19b9;
+  --color-on-brand: #ffffff;
+  --color-fog: #e9ebf8;
+  --color-haze: #a6a4d4;
+  --color-dim: #807dac;
+  --color-volt: #ffd447;
+  --color-volt-ink: #ffd447;
+  --color-on-volt: #0c0a15;
+  --color-danger: #f59e8b;
+  --color-line: rgb(170 160 255 / 0.12);
+  --color-line-strong: rgb(196 188 255 / 0.22);
+
+  --radius-panel: 14px;
+  --radius-control: 10px;
+  --radius-tag: 6px;
+  --radius-cell: 3px;
+
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+@theme inline {
+  --font-display: var(--font-mona), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-mona), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-martian), ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+:root {
+  color-scheme: dark;
+  --void-rgb: 12 10 21;
+  --fog-rgb: 233 235 248;
+  --haze-rgb: 166 164 212;
+  --line-rgb: 170 160 255;
+  --volt-rgb: 255 212 71;
+  --field-bg: rgb(12 10 21 / 0.7);
+  --btn-primary-hover: #3624cc;
+  --sidebar-w: 232px;
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5' stroke='%23a6a4d4' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --color-void: #f3f2fb;
+  --color-deck: #ffffff;
+  --color-brand: #2b19b9;
+  --color-fog: #100c2a;
+  --color-haze: #4a4678;
+  --color-dim: #625e8c;
+  --color-volt: #f5b800;
+  --color-volt-ink: #8c5e00;
+  --color-on-volt: #100c2a;
+  --color-danger: #b93a26;
+  --color-line: rgb(45 30 130 / 0.12);
+  --color-line-strong: rgb(45 30 130 / 0.22);
+  --void-rgb: 243 242 251;
+  --fog-rgb: 16 12 42;
+  --haze-rgb: 74 70 120;
+  --line-rgb: 70 55 170;
+  --volt-rgb: 245 184 0;
+  --field-bg: #ffffff;
+  --btn-primary-hover: #3624cc;
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M3 4.5 6 7.5 9 4.5' stroke='%234a4678' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+@layer base {
+  html {
+    background: var(--color-void);
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    color: var(--color-fog);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background: rgb(var(--volt-rgb) / 0.3);
+    color: var(--color-fog);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-fog);
+    outline-offset: 3px;
+  }
+}
+
+@layer components {
+  .display {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    text-wrap: balance;
+  }
+
+  .mono {
+    font-family: var(--font-mono);
+    font-stretch: 87.5%;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+  }
+
+  /* A plain surface with a hairline edge. */
+  .panel {
+    position: relative;
+    isolation: isolate;
+    border-radius: var(--radius-panel);
+    background: var(--color-deck);
+    box-shadow: inset 0 0 0 1px var(--color-line-strong);
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 40px;
+    padding: 0 16px;
+    border-radius: var(--radius-control);
+    font-size: 14px;
+    font-weight: 560;
+    white-space: nowrap;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+      transform 160ms var(--ease-out),
+      background-color 200ms ease,
+      box-shadow 200ms ease,
+      color 200ms ease;
+  }
+
+  .btn:active {
+    transform: scale(0.97);
+  }
+
+  .btn:disabled {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+
+  .btn-primary {
+    background: var(--color-brand);
+    color: var(--color-on-brand);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.18),
+      0 10px 28px -12px rgb(43 25 185 / 0.8);
+  }
+
+  .btn-ghost {
+    color: var(--color-fog);
+    background: rgb(var(--fog-rgb) / 0.02);
+    box-shadow: inset 0 0 0 1px var(--color-line-strong);
+  }
+
+  .btn-danger {
+    color: var(--color-danger);
+    box-shadow: inset 0 0 0 1px var(--color-line-strong);
+  }
+
+  .btn-sm {
+    height: 32px;
+    padding: 0 12px;
+    font-size: 13px;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .btn-primary:hover {
+      background: var(--btn-primary-hover);
+    }
+
+    .btn-ghost:hover,
+    .btn-danger:hover {
+      background: rgb(var(--fog-rgb) / 0.06);
+    }
+  }
+
+  .field {
+    width: 100%;
+    height: 40px;
+    padding: 0 12px;
+    border-radius: var(--radius-control);
+    background-color: var(--field-bg);
+    color: var(--color-fog);
+    box-shadow: inset 0 0 0 1px var(--color-line-strong);
+    transition: box-shadow 200ms ease;
+  }
+
+  .field::placeholder {
+    color: var(--color-dim);
+  }
+
+  .field:focus-visible {
+    outline: none;
+    box-shadow:
+      inset 0 0 0 1px var(--color-fog),
+      0 0 0 3px rgb(var(--fog-rgb) / 0.14);
+  }
+
+  .field[aria-invalid="true"] {
+    box-shadow: inset 0 0 0 1px var(--color-danger);
+  }
+
+  select.field {
+    -webkit-appearance: none;
+    appearance: none;
+    padding-right: 40px;
+    cursor: pointer;
+    background-image: var(--chevron);
+    background-position: right 14px center;
+    background-repeat: no-repeat;
+    background-size: 12px 12px;
+  }
+
+  select.field option {
+    background: var(--color-deck);
+    color: var(--color-fog);
+  }
+
+  /* Live indicator: only rendered when something is actually live. */
+  .live-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: var(--color-volt);
+    flex: none;
+  }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    height: 22px;
+    padding: 0 7px;
+    border-radius: var(--radius-tag);
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--color-haze);
+    box-shadow: inset 0 0 0 1px var(--color-line-strong);
+  }
+
+  /* Sidebar navigation links. The active one is lit with fog; a volt bar only marks a live section. */
+  .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 38px;
+    padding: 0 10px;
+    border-radius: var(--radius-control);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-haze);
+    -webkit-tap-highlight-color: transparent;
+    transition:
+      background-color 150ms ease,
+      color 150ms ease;
+  }
+
+  .nav-link[aria-current="page"] {
+    color: var(--color-fog);
+    background: rgb(var(--fog-rgb) / 0.06);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .nav-link:hover {
+      color: var(--color-fog);
+      background: rgb(var(--fog-rgb) / 0.04);
+    }
+  }
+}
+
+/* Inputs under 16px make iOS Safari zoom the page on focus. */
+@media (pointer: coarse), (max-width: 767px) {
+  .field {
+    font-size: 16px;
+  }
+}
+
+/* Theme switch (src/components/theme/theme-switch.tsx): a 5x5 pixel grid in the logo's language. */
+.theme-switch {
+  position: relative;
+  display: inline-grid;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  place-items: center;
+  border-radius: var(--radius-control);
+  color: var(--color-fog);
+  box-shadow: inset 0 0 0 1px var(--color-line);
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    box-shadow 200ms ease,
+    background-color 200ms ease,
+    transform 160ms var(--ease-out);
+}
+
+.theme-switch:active {
+  transform: scale(0.94);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .theme-switch:hover {
+    background-color: rgb(var(--fog-rgb) / 0.05);
+    box-shadow: inset 0 0 0 1px var(--color-line-strong);
+  }
+}
+
+.theme-switch rect {
+  fill: currentColor;
+  opacity: 0.1;
+  transform: scale(0.5);
+  transform-box: fill-box;
+  transform-origin: center;
+  transition:
+    opacity 180ms ease,
+    transform 220ms var(--ease-out);
+  transition-delay: var(--d, 0ms);
+}
+
+:root:not([data-theme="light"]) .theme-switch rect[data-moon],
+:root[data-theme="light"] .theme-switch rect[data-sun] {
+  opacity: 1;
+  transform: scale(1);
+}
+
+:root[data-theme="light"] .theme-label-dark,
+:root:not([data-theme="light"]) .theme-label-light {
+  display: none;
+}
+
+/* Theme reveal: the new theme scans down the page behind a volt line. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-group(theme-scan),
+::view-transition-old(theme-scan),
+::view-transition-new(theme-scan) {
+  animation: none;
+}
+
+.theme-scanline {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  height: 2px;
+  pointer-events: none;
+  visibility: hidden;
+  background: var(--color-volt);
+  box-shadow: 0 0 18px 3px rgb(var(--volt-rgb) / 0.55);
+  view-transition-name: theme-scan;
+}
+
+:root.theme-scanning .theme-scanline {
+  visibility: visible;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-switch rect {
+    transition: opacity 120ms ease;
+    transition-delay: 0ms;
+  }
+}
